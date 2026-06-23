@@ -7,6 +7,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # --- 1. Universal Source Files ---
 set(UNIVERSAL_SOURCES
     src/main.cpp
+    src/robot_physics.cpp
 )
 
 # --- 2. Target Platform Selector ---
@@ -14,11 +15,11 @@ if(WIIU)
     message(STATUS "Configuring Target: Nintendo Wii U")
     add_definitions(-D__WIIU__)
     
-    add_executable(${PROJECT_NAME} ${UNIVERSAL_SOURCES})
+    include("$ENV{DEVKITPRO}/wut/share/wut.cmake" REQUIRED)
     
+    # Compile with the Wii U GX2 graphics backend file
+    add_executable(${PROJECT_NAME} ${UNIVERSAL_SOURCES} src/gfx/wiiu_gx2.cpp)
     target_link_libraries(${PROJECT_NAME} PRIVATE wut m)
-    
-    # Official devkitPro toolchain packaging wrapper
     wut_create_rpx(${PROJECT_NAME})
 
 elseif(GEKKO OR NINTENDO_WII)
@@ -31,9 +32,9 @@ elseif(GEKKO OR NINTENDO_WII)
     include_directories($ENV{DEVKITPRO}/libogc/include)
     link_directories($ENV{DEVKITPRO}/libogc/lib/wii)
     
-    add_executable(${PROJECT_NAME} ${UNIVERSAL_SOURCES})
+    # Compile with the Wii GX graphics backend file
+    add_executable(${PROJECT_NAME} ${UNIVERSAL_SOURCES} src/gfx/wii_gx.cpp)
     target_link_libraries(${PROJECT_NAME} PRIVATE wiiuse bte ogc m)
-    
     ogc_create_dol(${PROJECT_NAME})
 
 elseif(NINTENDO_3DS)
@@ -44,19 +45,20 @@ elseif(NINTENDO_3DS)
     include(Nintendo3DS)
     
     include_directories($ENV{DEVKITPRO}/libctru/include)
-    add_executable(${PROJECT_NAME} ${UNIVERSAL_SOURCES})
-    target_link_libraries(${PROJECT_NAME} PRIVATE citro3d ctru m)
     
+    # Compile with the 3DS Citro3D graphics backend file
+    add_executable(${PROJECT_NAME} ${UNIVERSAL_SOURCES} src/gfx/3ds_citro3d.cpp)
+    target_link_libraries(${PROJECT_NAME} PRIVATE citro3d ctru m)
     ctr_create_3dsx(${PROJECT_NAME})
 
 else()
-    # --- 3. Native Linux Desktop Target ---
     message(STATUS "Configuring Target: Native Linux Desktop PC")
     add_definitions(-D__DESKTOP_PC__)
     
     find_package(glfw3 CONFIG REQUIRED)
     find_package(OpenGL REQUIRED)
     
-    add_executable(${PROJECT_NAME} ${UNIVERSAL_SOURCES})
+    # Compile with the Desktop OpenGL graphics backend file
+    add_executable(${PROJECT_NAME} ${UNIVERSAL_SOURCES} src/gfx/pc_opengl.cpp)
     target_link_libraries(${PROJECT_NAME} PRIVATE glfw OpenGL::GL)
 endif()
