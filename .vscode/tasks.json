@@ -1,0 +1,67 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        // --- 1. Generation Targets ---
+        {
+            "label": "Generate PC (CMake)",
+            "type": "shell",
+            "command": "cmake -B build_pc -S ."
+        },
+        {
+            "label": "Generate 3DS (CMake)",
+            "type": "shell",
+            "command": "cmake -B build_3ds -S . -DCMAKE_TOOLCHAIN_FILE=/opt/devkitpro/cmake/3DS.cmake"
+        },
+        {
+            "label": "Generate Wii (CMake)",
+            "type": "shell",
+            "command": "cmake -B build_wii -S . -DCMAKE_TOOLCHAIN_FILE=/opt/devkitpro/cmake/Wii.cmake"
+        },
+        {
+            "label": "Generate Wii U (CMake)",
+            "type": "shell",
+            "command": "cmake -B build_wiiu -S . -DCMAKE_TOOLCHAIN_FILE=/opt/devkitpro/cmake/WiiU.cmake"
+        },
+
+        // --- 2. Compilation Targets (Linked to Launch Profiles) ---
+        {
+            "label": "Build PC (Desktop)",
+            "type": "shell",
+            "command": "cmake --build build_pc",
+            "dependsOn": "Generate PC (CMake)",
+            "group": "build",
+            "problemMatcher": ["$gcc"]
+        },
+        {
+            "label": "Build Nintendo 3DS",
+            "type": "shell",
+            "command": "cmake --build build_3ds",
+            "dependsOn": "Generate 3DS (CMake)",
+            "group": "build",
+            "problemMatcher": ["$gcc"]
+        },
+        {
+            "label": "Build Nintendo Wii",
+            "type": "shell",
+            "command": "cmake --build build_wii",
+            "dependsOn": "Generate Wii (CMake)",
+            "group": "build",
+            "problemMatcher": ["$gcc"]
+        },
+        {
+            "label": "Build Nintendo Wii U",
+            "type": "shell",
+            "command": "cmake --build build_wiiu",
+            "dependsOn": "Generate Wii U (CMake)",
+            "group": "build",
+            "problemMatcher": ["$gcc"]
+        },
+
+        // --- 3. Utilities ---
+        {
+            "label": "Clean All Caches",
+            "type": "shell",
+            "command": "rm -rf build_pc build_3ds build_wii build_wiiu"
+        }
+    ]
+}

@@ -1,0 +1,35 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Run/Debug - Local PC Sim",
+            "type": "lldb",
+            "request": "launch",
+            "program": "${workspaceFolder}/build_pc/brewsim",
+            "args": [],
+            "cwd": "${workspaceFolder}/build_pc",
+            "preLaunchTask": "Build PC (Desktop)"
+        },
+        {
+            "name": "Test - Azahar (3DS)",
+            "type": "node-terminal",
+            "request": "launch",
+            "command": "azahar \"${workspaceFolder}/build_3ds/brewsim.3dsx\"",
+            "preLaunchTask": "Build Nintendo 3DS"
+        },
+        {
+            "name": "Test - Dolphin (Wii)",
+            "type": "node-terminal",
+            "request": "launch",
+            "command": "dolphin-emu -e \"${workspaceFolder}/build_wii/brewsim.dol\"",
+            "preLaunchTask": "Build Nintendo Wii"
+        },
+        {
+    "name": "Test - Cemu (Wii U)",
+    "type": "node-terminal",
+    "request": "launch",
+    "command": "cemu -g \"${workspaceFolder}/build_wiiu/brewsim.rpx\" && tail -n 50 ~/.local/share/Cemu/log.txt",
+    "preLaunchTask": "Build Nintendo Wii U"
+}
+    ]
+}

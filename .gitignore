@@ -1,0 +1,77 @@
+# ==============================================================================
+# 1. BUILD SYSTEM CORES & SCRATCH DIRECTORIES
+# ==============================================================================
+# Block all local compilation build variations
+/build*/
+/build_pc/
+/build_wii/
+/build_3ds/
+/build_wiiu/
+/bin/
+
+# Ignore standard CMake artifact generation
+CMakeCache.txt
+CMakeFiles/
+CMakeCheckOutputs/
+Makefile
+cmake_install.cmake
+install_manifest.txt
+compile_commands.json
+
+# ==============================================================================
+# 2. COMPILED CONSOLE EXECUTABLES & META
+# ==============================================================================
+# Nintendo 3DS Deliverables
+*.3dsx
+*.smdh
+*.cia
+*.3ds
+
+# Nintendo Wii Deliverables
+*.dol
+*.elf
+
+# Nintendo Wii U Deliverables
+*.rpx
+*.wua
+
+# ==============================================================================
+# 3. EMULATOR RUNTIME OVERLAYS & LOGS
+# ==============================================================================
+# Core dump fragments, logs, and shaders generated during automated testing
+*.log
+*.elf.gdb
+*.map
+shader_cache/
+gpu_cache/
+cemu_logs/
+dolphin_stats/
+
+# ==============================================================================
+# 4. OS, DEVELOPMENT TOOLSETS & LINUX SPECIFICS
+# ==============================================================================
+# Linux system and file properties metadata
+.directory
+*~
+*.swp
+
+# Visual Studio Code workspaces & cache
+.vscode/ipch/
+.vscode/.cmaketools/
+.vscode/browse.vc.db
+# NOTE: Leave .vscode/tasks.json and launch.json tracked if sharing tool configs!
+
+# Generic IDE metadata
+.idea/
+.CLION/
+
+# ==============================================================================
+# 5. ROBOTIC CAD & RAW Blender/3D MASTER ASSETS
+# ==============================================================================
+# Ignore heavy raw design workspaces; keep repo light for compiled engine meshes
+*.blend1
+*.blend2
+*.max
+*.mb
+*.step
+*.stp
