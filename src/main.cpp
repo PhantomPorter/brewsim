@@ -147,26 +147,15 @@ int main(int argc, char** argv) {
         // ---------------------------------------------------------------------
         // STEP B: PROCESS CORE PHYSICS CALCULATIONS
         // ---------------------------------------------------------------------
-<<<<<<< HEAD
          SwerveDriveStates current_robot_swerve = CalculateSwerveKinematics(
             player_controls.drive_y, player_controls.drive_x, player_controls.steer_rot, g_robotHeadingRad, my_robot_config
         );
-=======
-        SwerveDriveStates current_robot_swerve = CalculateSwerveKinematics(
-            player_controls.drive_y, player_controls.drive_x, player_controls.steer_rot, g_robotHeadingRad
-        );
-
->>>>>>> 84c788d7a1d9c615dcf783b7a91086053a114957
         // ---------------------------------------------------------------------
         // STEP C: HARDWARE ACCELERATED 3D RENDER PIPELINE MATRIX
         // ---------------------------------------------------------------------
         StartRenderFrame();
         RenderFRCField();
-<<<<<<< HEAD
         RenderRobotChassis(robot_mesh, current_robot_swerve); 
-=======
-        RenderRobotChassis(current_robot_swerve); 
->>>>>>> 84c788d7a1d9c615dcf783b7a91086053a114957
         EndRenderFrame();
     }
 
