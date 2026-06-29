@@ -8,6 +8,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(UNIVERSAL_SOURCES
     src/main.cpp
     src/robot_physics.cpp
+    src/gfx/renderer.cpp
 )
 
 # --- 2. Target Platform Selector ---

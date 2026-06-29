@@ -6,7 +6,6 @@
 #if defined(__DESKTOP_PC__)
     #include <GLFW/glfw3.h>
     // Global tracking handle pointer for our window execution context
-    GLFWwindow* g_pcWindow = nullptr; 
 #elif defined(__3DS__)
     #include <3ds.h>
 #elif defined(__WII__)
@@ -31,15 +30,24 @@ struct DriverStationInput {
     bool autonomous_mode = false;
 };
 
+
+
 bool g_running = true;
 
 // Expose the global simulated gyro orientation variable updated by the active renderer
-extern float g_robotHeadingRad;
 
 int main(int argc, char** argv) {
     DriverStationInput player_controls;
+    
 
-    // =========================================================================
+    RobotDimensions my_robot_config = {
+        1.2f,  // Example Track Width
+        1.0f,  // Example Wheel Base
+        0.25f  // Example Wheel Radius
+    };
+
+    // Load the robot's geometry mesh from the assets folder
+    RobotMesh robot_mesh = LoadRobotMesh("model.obj"); 
     // 1. HARDWARE LAYER & ENGINE GRAPHICS SETUP
     // =========================================================================
     InitGraphicsBackend();
@@ -139,16 +147,15 @@ int main(int argc, char** argv) {
         // ---------------------------------------------------------------------
         // STEP B: PROCESS CORE PHYSICS CALCULATIONS
         // ---------------------------------------------------------------------
-        SwerveDriveStates current_robot_swerve = CalculateSwerveKinematics(
-            player_controls.drive_y, player_controls.drive_x, player_controls.steer_rot, g_robotHeadingRad
+         SwerveDriveStates current_robot_swerve = CalculateSwerveKinematics(
+            player_controls.drive_y, player_controls.drive_x, player_controls.steer_rot, g_robotHeadingRad, my_robot_config
         );
-
         // ---------------------------------------------------------------------
         // STEP C: HARDWARE ACCELERATED 3D RENDER PIPELINE MATRIX
         // ---------------------------------------------------------------------
         StartRenderFrame();
         RenderFRCField();
-        RenderRobotChassis(current_robot_swerve); 
+        RenderRobotChassis(robot_mesh, current_robot_swerve); 
         EndRenderFrame();
     }
 

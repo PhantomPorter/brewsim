@@ -1,11 +1,9 @@
 #include "robot_physics.h"
 #include <cmath>
 
-const float ROBOT_TRACKWIDTH = 0.6f;  
-const float ROBOT_WHEELBASE   = 0.6f;  
-const float ROBOT_RADIUS = std::sqrt((ROBOT_WHEELBASE * ROBOT_WHEELBASE) + (ROBOT_TRACKWIDTH * ROBOT_TRACKWIDTH));
-
-SwerveDriveStates CalculateSwerveKinematics(float fwd, float strafe, float rcw, float robotHeadingRad) {
+// Implementation of the parameterized kinematics function
+// NOTE: This function now relies entirely on the 'dimensions' passed in.
+SwerveDriveStates CalculateSwerveKinematics(float fwd, float strafe, float rcw, float robotHeadingRad, const RobotDimensions& dimensions) {
     SwerveDriveStates states;
 
     // --- FIELD-ORIENTED TRANSFORM ---
@@ -16,10 +14,10 @@ SwerveDriveStates CalculateSwerveKinematics(float fwd, float strafe, float rcw, 
     float robotFwd    = fwd * cosHeading + strafe * sinHeading;
     float robotStrafe = -fwd * sinHeading + strafe * cosHeading;
 
-    // --- STANDARD FRC SWERVE MATRIX ---
-    // Half dimensions used for component velocity calculations
-    float L = ROBOT_WHEELBASE / 2.0f;
-    float W = ROBOT_TRACKWIDTH / 2.0f;
+    // --- SWERVE MATRIX CALCULATION ---
+    // Use dimensions provided by the CAD model
+    float L = dimensions.wheel_base / 2.0f;
+    float W = dimensions.track_width / 2.0f;
 
     // Calculate individual coordinate components for each module
     float A = robotStrafe - rcw * L;
