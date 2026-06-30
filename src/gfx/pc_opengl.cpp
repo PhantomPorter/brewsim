@@ -69,33 +69,26 @@ void RenderFRCField() {
 }
 
 // FINAL FUNCTION: Renders the imported OBJ mesh geometry!
-void RenderRobotChassis(const RobotMesh &mesh,
-                        const SwerveDriveStates &swerve) {
+// Update your signature to accept the driver's original joystick commands!
+void RenderRobotChassis(const RobotMesh& mesh, float fwd, float strafe, float rcw) {
+    
+    float dt = 0.016f;
+    float linearSpeedMultiplier = 8.0f;  // Adjust to make the robot slide faster or slower
+    float angularSpeedMultiplier = 5.0f; // Adjust to tweak turning rate
 
-  // --- 1. Calculate Pose (Physics Integration) ---
-  // Use the kinematics output to update the robot's position and heading.
-  float dt = 0.016f;
+    // Field-oriented translational movement calculation:
+    // Move on the field based on raw world commands instead of absolute wheel module scalar values
+    g_robotX += strafe * linearSpeedMultiplier * dt;
+    g_robotY += fwd * linearSpeedMultiplier * dt;
+    g_robotHeadingRad += rcw * angularSpeedMultiplier * dt; 
 
-  // Integrate translational movement (X, Y) based on the current calculated
-  // state This assumes the kinematics function outputs a normalized speed (0 to
-  // 1).
-  g_robotX += swerve.front_left.speed * dt;
-  g_robotY += swerve.front_left.speed * dt;
+    // --- 2. Rendering the Mesh ---
+    glPushMatrix();
+    
+    // Note: OpenGL matches Z to forward-back, X to left-right
+    glTranslatef(g_robotX, 0.4f, -g_robotY); 
+    glRotatef(-g_robotHeadingRad * 180.0f / M_PI, 0.0f, 1.0f, 0.0f);
 
-  // Integrate rotational movement
-  // We multiply by a factor to tune the speed of rotation in the visualization.
-  g_robotHeadingRad += swerve.front_left.angle_rad * dt * 10.0f;
-
-  // --- 2. Rendering the Mesh ---
-
-  glPushMatrix();
-
-  // Apply the calculated position and rotation to the current OpenGL matrix
-  glTranslatef(g_robotX, 0.4f, -g_robotY);
-  glRotatef(-g_robotHeadingRad * 180.0f / M_PI, 0.0f, 1.0f, 0.0f);
-  glScalef(5.0f, 5.0f, 5.0f);                          
-  // Draw the mesh using the stored indices
-  // Inside src/gfx/pc_opengl.cpp -> RenderRobotChassis()
     glBegin(GL_TRIANGLES);
     for (unsigned int i = 0; i < mesh.indices.size(); i += 3) {
         const Vertex& v1 = mesh.vertices[mesh.indices[i]];
@@ -108,7 +101,7 @@ void RenderRobotChassis(const RobotMesh &mesh,
     }
     glEnd();
 
-  glPopMatrix();
+    glPopMatrix();
 }
 
 void EndRenderFrame() {

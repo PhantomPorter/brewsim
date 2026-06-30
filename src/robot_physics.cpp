@@ -7,7 +7,6 @@ SwerveDriveStates CalculateSwerveKinematics(float fwd, float strafe, float rcw, 
     SwerveDriveStates states;
 
     // --- FIELD-ORIENTED TRANSFORM ---
-    // Standard rotation matrix converting field commands into robot relative commands
     float cosHeading = std::cos(robotHeadingRad);
     float sinHeading = std::sin(robotHeadingRad);
     
@@ -15,26 +14,26 @@ SwerveDriveStates CalculateSwerveKinematics(float fwd, float strafe, float rcw, 
     float robotStrafe = -fwd * sinHeading + strafe * cosHeading;
 
     // --- SWERVE MATRIX CALCULATION ---
-    // Use dimensions provided by the CAD model
+    // L = Wheel Base (Front-to-Back), W = Track Width (Left-to-Right)
     float L = dimensions.wheel_base / 2.0f;
     float W = dimensions.track_width / 2.0f;
 
-    // Calculate individual coordinate components for each module
-    float A = robotStrafe - rcw * L;
-    float B = robotStrafe + rcw * L;
-    float C = robotFwd    - rcw * W;
-    float D = robotFwd    + rcw * W;
+    // Correct swerve vector layout components
+    float A = robotStrafe - rcw * L; // Back
+    float B = robotStrafe + rcw * L; // Front
+    float C = robotFwd    - rcw * W; // Left
+    float D = robotFwd    + rcw * W; // Right
 
-    // Assign corrected vector combinations to each module pod
-    states.front_right.speed = std::sqrt((B * B) + (C * C));
-    states.front_left.speed  = std::sqrt((B * B) + (D * D));
-    states.back_left.speed   = std::sqrt((A * A) + (D * D));
-    states.back_right.speed  = std::sqrt((A * A) + (C * C));
+    // Assign module wheel vector sums
+    states.front_right.speed = std::sqrt((B * B) + (D * D));
+    states.front_left.speed  = std::sqrt((B * B) + (C * C));
+    states.back_left.speed   = std::sqrt((A * A) + (C * C));
+    states.back_right.speed  = std::sqrt((A * A) + (D * D));
 
-    states.front_right.angle_rad = std::atan2(B, C);
-    states.front_left.angle_rad  = std::atan2(B, D);
-    states.back_left.angle_rad   = std::atan2(A, D);
-    states.back_right.angle_rad  = std::atan2(A, C);
+    states.front_right.angle_rad = std::atan2(B, D);
+    states.front_left.angle_rad  = std::atan2(B, C);
+    states.back_left.angle_rad   = std::atan2(A, C);
+    states.back_right.angle_rad  = std::atan2(A, D);
 
     // --- PROPORTIONAL SPEED NORMALIZATION ---
     float max_speed = states.front_right.speed;

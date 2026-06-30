@@ -22,6 +22,7 @@
     float g_wiiStrafeInput = 0.0f;
     float g_wiiRotInput = 0.0f;
 #endif
+
 // --- Abstract Global Input States ---
 struct DriverStationInput {
     float drive_x = 0.0f;       // Swerve Translation X (-1.0 to 1.0)
@@ -30,16 +31,14 @@ struct DriverStationInput {
     bool autonomous_mode = false;
 };
 
-
-
 bool g_running = true;
 
-// Expose the global simulated gyro orientation variable updated by the active renderer
+// FIX: Expose the global simulated heading angle updated by the rendering engine
+extern float g_robotHeadingRad; 
 
 int main(int argc, char** argv) {
     DriverStationInput player_controls;
     
-
     RobotDimensions my_robot_config = {
         1.2f,  // Example Track Width
         1.0f,  // Example Wheel Base
@@ -48,6 +47,7 @@ int main(int argc, char** argv) {
 
     // Load the robot's geometry mesh from the assets folder
     RobotMesh robot_mesh = LoadRobotMesh("model.obj"); 
+    
     // 1. HARDWARE LAYER & ENGINE GRAPHICS SETUP
     // =========================================================================
     InitGraphicsBackend();
@@ -114,7 +114,6 @@ int main(int argc, char** argv) {
         if (wpad_data->err == WPAD_ERR_NONE && wpad_data->exp.type == WPAD_EXP_NUNCHUK) {
             // Read and normalize Nunchuk stick vectors
             g_wiiStrafeInput = (static_cast<float>(wpad_data->exp.nunchuk.js.pos.x) - wpad_data->exp.nunchuk.js.center.x) / 45.0f;
-            
             g_wiiFwdInput    = -((static_cast<float>(wpad_data->exp.nunchuk.js.pos.y) - wpad_data->exp.nunchuk.js.center.y) / 45.0f);
         } else {
             // Fallback: Invert the sideways Wiimote D-pad buttons to match
@@ -128,7 +127,6 @@ int main(int argc, char** argv) {
         player_controls.drive_x = g_wiiStrafeInput;
         player_controls.drive_y = g_wiiFwdInput;
         player_controls.steer_rot = g_wiiRotInput;
-
 
 #elif defined(__WIIU__)
         VPADStatus vpad_status;
@@ -147,15 +145,20 @@ int main(int argc, char** argv) {
         // ---------------------------------------------------------------------
         // STEP B: PROCESS CORE PHYSICS CALCULATIONS
         // ---------------------------------------------------------------------
-         SwerveDriveStates current_robot_swerve = CalculateSwerveKinematics(
+        // Keeping this alive so math configurations calculate background parameters if needed
+        SwerveDriveStates current_robot_swerve = CalculateSwerveKinematics(
             player_controls.drive_y, player_controls.drive_x, player_controls.steer_rot, g_robotHeadingRad, my_robot_config
         );
+
         // ---------------------------------------------------------------------
         // STEP C: HARDWARE ACCELERATED 3D RENDER PIPELINE MATRIX
         // ---------------------------------------------------------------------
         StartRenderFrame();
         RenderFRCField();
-        RenderRobotChassis(robot_mesh, current_robot_swerve); 
+        
+        // FIX: Pass raw translation values directly to the chassis transformation loop
+        RenderRobotChassis(robot_mesh, player_controls.drive_y, player_controls.drive_x, player_controls.steer_rot); 
+        
         EndRenderFrame();
     }
 

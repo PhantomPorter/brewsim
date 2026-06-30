@@ -31,7 +31,7 @@ RobotMesh LoadRobotMesh(const std::string& filepath);
 void InitGraphicsBackend();
 void StartRenderFrame();
 void RenderFRCField();
-void RenderRobotChassis(const RobotMesh& mesh, const SwerveDriveStates& swerve);
+void RenderRobotChassis(const RobotMesh& mesh, float fwd, float strafe, float rcw);
 void EndRenderFrame();
 void DeinitGraphicsBackend();
 

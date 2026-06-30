@@ -1,120 +1,135 @@
-// src/gfx/renderer.cpp
 #include "renderer.h"
-#include <GL/gl.h>
-#include <GLFW/glfw3.h> // REQUIRED: To define glBegin, glVertex3f, etc.
-#include <cmath>
-#include <fstream>
 #include <iostream>
+#include <fstream>
 #include <sstream>
 #include <string>
 #include <vector>
+#include <map>
 
-// Structure to hold the indices for a single triangle face
-struct Triplet {
-  unsigned int v_idx;
-  unsigned int vt_idx;
-  unsigned int vn_idx;
+// Helper structure to hold RGB color channels
+struct RGBColor {
+    float r = 0.5f;
+    float g = 0.5f;
+    float b = 0.5f;
 };
 
-// ----------------------------------------------------------------------
-// THE COMPLETE OBJ PARSER IMPLEMENTATION
-// ----------------------------------------------------------------------
+// Main function to load the mesh and materials synchronously
+RobotMesh LoadRobotMesh(const std::string& filepath) {
+    RobotMesh mesh;
+    std::ifstream obj_file(filepath);
 
-RobotMesh LoadRobotMesh(const std::string &filepath) {
-  RobotMesh mesh;
-  std::ifstream file(filepath);
+    if (!obj_file.is_open()) {
+        std::cerr << "ERROR: Could not open OBJ file: " << filepath << std::endl;
+        return mesh;
+    }
 
-  if (!file.is_open()) {
-    std::cerr << "ERROR: Could not open file: " << filepath << std::endl;
-    return mesh;
-  }
+    // --- PHASE 1: PARSE THE COMPANION .MTL FILE FIRST ---
+    std::map<std::string, RGBColor> material_library;
+    
+    // Convert "path/to/model.obj" -> "path/to/model.mtl"
+    std::string mtl_filepath = filepath;
+    size_t ext_pos = mtl_filepath.find_last_of(".");
+    if (ext_pos != std::string::npos) {
+        mtl_filepath = mtl_filepath.substr(0, ext_pos) + ".mtl";
+    }
 
-  std::string line;
-  std::vector<Vertex> raw_positions;
-  std::vector<Triplet> face_triplets;
+    std::ifstream mtl_file(mtl_filepath);
+    if (mtl_file.is_open()) {
+        std::string mtl_line;
+        std::string current_mtl_name = "";
 
-  // Track the active color state (defaulting to a visible Magenta/Pink
-  // so we instantly know if a material isn't being caught by our if-statements)
-  float currentR = 1.0f;
-  float currentG = 0.0f;
-  float currentB = 1.0f;
+        while (std::getline(mtl_file, mtl_line)) {
+            std::stringstream ss(mtl_line);
+            std::string prefix;
+            ss >> prefix;
 
-  while (std::getline(file, line)) {
-    std::stringstream ss(line);
-    std::string prefix;
-    ss >> prefix;
-
-    if (prefix == "usemtl") {
-      std::string matName;
-      ss >> matName;
-
-      // Temporary variables to extract the scanned floats
-      float r = 0.5f, g = 0.5f, b = 0.5f;
-
-      // Use sscanf to automatically extract up to 3 underscore-separated floats
-      // from the name string. Example match:
-      // "0.603922_0.647059_0.686275_0.000000_0.000000"
-      int matched = std::sscanf(matName.c_str(), "%f_%f_%f", &r, &g, &b);
-
-      if (matched >= 3) {
-        // If parsing succeeded, apply the exact CAD values dynamically!
-        currentR = r;
-        currentG = g;
-        currentB = b;
-      } else {
-        // Fallback default color if a weird named material shows up
-        currentR = 0.5f;
-        currentG = 0.5f;
-        currentB = 0.5f;
-      }
-    } else if (prefix == "v") {
-      float x, y, z;
-      if (ss >> x >> y >> z) {
-        // Push vertex with whatever the active color state is
-        raw_positions.push_back({x, y, z, currentR, currentG, currentB});
-      }
-    } else if (prefix == "f") {
-      std::string token;
-      while (ss >> token) {
-        std::stringstream token_ss(token);
-        std::string str_v, str_vt, str_vn;
-
-        std::getline(token_ss, str_v, '/');
-        std::getline(token_ss, str_vt, '/');
-        std::getline(token_ss, str_vn, '/');
-
-        if (!str_v.empty()) {
-          try {
-            unsigned int v_idx = std::stoul(str_v);
-            face_triplets.push_back({v_idx, 0, 0});
-          } catch (...) {
-          }
+            if (prefix == "newmtl") {
+                ss >> current_mtl_name;
+            } 
+            else if (prefix == "Kd" && !current_mtl_name.empty()) {
+                float r, g, b;
+                if (ss >> r >> g >> b) {
+                    material_library[current_mtl_name] = {r, g, b};
+                }
+            }
         }
-      }
+        mtl_file.close();
+        std::cout << "SUCCESS: Loaded " << material_library.size() << " materials from " << mtl_filepath << std::endl;
+    } else {
+        std::cerr << "WARNING: Could not find or open companion material file: " << mtl_filepath << std::endl;
     }
-  }
-  file.close();
 
-  // --- Phase 2: Populate the Final Mesh Structures ---
-  // Copy the raw positions into the final mesh structure
-  mesh.vertices = std::move(raw_positions);
+    // --- PHASE 2: PARSE THE OBJ FILE & DYNAMICALLY ASSIGN COLORS ---
+    std::string line;
+    std::vector<Vertex> raw_positions;
 
-  // Convert 1-based OBJ face triplets into 0-based index buffers
-  for (const auto &triplet : face_triplets) {
-    if (triplet.v_idx > 0 && triplet.v_idx <= mesh.vertices.size()) {
-      mesh.indices.push_back(triplet.v_idx - 1);
+    // Fallback tracking color state
+    float currentR = 0.6f; 
+    float currentG = 0.6f; 
+    float currentB = 0.6f; 
+
+    while (std::getline(obj_file, line)) {
+        std::stringstream ss(line);
+        std::string prefix;
+        ss >> prefix;
+
+        if (prefix == "v") {
+            float x, y, z;
+            if (ss >> x >> y >> z) {
+                // Collect clean vertex coordinates (We can use Option 2 from scaling here if needed!)
+                float scaleFactor = 5.0f; // Increase size by 5x right on load
+                raw_positions.push_back({x * scaleFactor, y * scaleFactor, z * scaleFactor, 1.0f, 1.0f, 1.0f});
+            }
+        } 
+        else if (prefix == "usemtl") {
+            std::string matName;
+            ss >> matName;
+            
+            // Match the material name to our loaded map dictionary!
+            auto it = material_library.find(matName);
+            if (it != material_library.end()) {
+                currentR = it->second.r;
+                currentG = it->second.g;
+                currentB = it->second.b;
+            } else {
+                // If it fails to find the material key, fall back to neutral gray
+                currentR = 0.5f; currentG = 0.5f; currentB = 0.5f;
+            }
+        }
+        else if (prefix == "f") {
+            std::string token;
+            while (ss >> token) {
+                std::stringstream token_ss(token);
+                std::string str_v;
+                
+                if (std::getline(token_ss, str_v, '/')) {
+                    if (!str_v.empty()) {
+                        try {
+                            unsigned int v_idx = std::stoul(str_v);
+                            if (v_idx > 0 && v_idx <= raw_positions.size()) {
+                                Vertex final_vertex = raw_positions[v_idx - 1];
+                                
+                                // Set the actual material colors read out of the file
+                                final_vertex.r = currentR;
+                                final_vertex.g = currentG;
+                                final_vertex.b = currentB;
+
+                                mesh.vertices.push_back(final_vertex);
+                                mesh.indices.push_back(mesh.vertices.size() - 1);
+                            }
+                        } catch (...) {}
+                    }
+                }
+            }
+        }
     }
-  }
 
-  std::cout << "\n========================================================="
-            << std::endl;
-  std::cout << "SUCCESS: Robot mesh loaded from " << filepath << "!"
-            << std::endl;
-  std::cout << "Total vertices found: " << mesh.vertices.size() << std::endl;
-  std::cout << "Total indices found (triangles): " << mesh.indices.size()
-            << std::endl;
-  std::cout << "=========================================================\n"
-            << std::endl;
-
-  return mesh;
+    obj_file.close();
+    
+    std::cout << "\n=========================================================" << std::endl;
+    std::cout << "SUCCESS: Integrated " << filepath << " with materials successfully!" << std::endl;
+    std::cout << "Total Triangles: " << mesh.indices.size() / 3 << std::endl;
+    std::cout << "=========================================================\n" << std::endl;
+    
+    return mesh;
 }
