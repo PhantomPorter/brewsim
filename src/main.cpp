@@ -122,10 +122,14 @@ int main(int argc, char **argv) {
     player_controls.steer_rot = g_wiiRotInput;
 #elif defined(__WIIU__)
     VPADStatus vpad_status;
-    VPADReadStatus vpad_error;
+    VPADReadError vpad_error; 
     VPADRead(VPAD_CHAN_0, &vpad_status, 1, &vpad_error);
-    if (vpad_error == WPAD_READ_SUCCESS) {
-      if (vpad_status.hold & VPAD_BUTTON_HOME) g_running = false;
+
+    if (vpad_error == VPAD_READ_SUCCESS) { 
+      if (vpad_status.hold & VPAD_BUTTON_HOME) {
+        g_running = false;
+      }
+
       player_controls.drive_x = vpad_status.leftStick.x;
       player_controls.drive_y = vpad_status.leftStick.y;
       player_controls.steer_rot = vpad_status.rightStick.x;
