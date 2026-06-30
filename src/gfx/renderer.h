@@ -1,38 +1,36 @@
-#ifndef RENDERER_H
-#define RENDERER_H
-
-#include "../robot_physics.h"
-// Include the necessary GLFW header here to declare g_pcWindow correctly
-#include <GLFW/glfw3.h> 
-#include <vector>
+#pragma once
 #include <string>
-
-// ----------------------------------------------------------------------
-// DECLARATIONS FOR GLOBAL STATE
-// ----------------------------------------------------------------------
-extern GLFWwindow* g_pcWindow; // Declaration for the window handle
-extern float g_robotX;
-extern float g_robotY;
-extern float g_robotHeadingRad; 
-
+#include <vector>
+#include <cstdint> // FIX: Adds standard types like uint32_t
 
 struct Vertex {
-    float x, y, z; // Position coordinates
-    float r, g, b; // Color channels (0.0 to 1.0)
+    float x, y, z;
+    float r, g, b;
 };
 
 struct RobotMesh {
+#if defined(__WII__)
+    Vertex* vertices;
+    uint32_t vertexCount; // FIX: Changed from u32 to uint32_t
+#else
     std::vector<Vertex> vertices;
-    std::vector<unsigned int> indices; 
+    std::vector<unsigned int> indices;
+#endif
 };
 
-RobotMesh LoadRobotMesh(const std::string& filepath);
-
+// --- Pipeline Control Core Functions ---
 void InitGraphicsBackend();
-void StartRenderFrame();
-void RenderFRCField();
-void RenderRobotChassis(const RobotMesh& mesh, float fwd, float strafe, float rcw);
-void EndRenderFrame();
 void DeinitGraphicsBackend();
 
+#if defined(__WII__)
+    #include <gccore.h>
+    Mtx* StartRenderFrame();
+    void RenderRobotChassis(const RobotMesh& mesh, float fwd, float strafe, float rcw, Mtx* viewMtx);
+#else
+    void StartRenderFrame();
+    void RenderRobotChassis(const RobotMesh& mesh, float fwd, float strafe, float rcw);
 #endif
+
+void RenderFRCField();
+void EndRenderFrame();
+RobotMesh LoadRobotMesh(const std::string& filepath);

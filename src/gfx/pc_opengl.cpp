@@ -7,10 +7,8 @@
 #include <cmath>
 
 // Global tracking variables exposed to main loops
-extern GLFWwindow *g_pcWindow = nullptr;
-
-// Global state variables (defined here, fulfilling the extern declaration in
-// renderer.h)
+GLFWwindow *g_pcWindow = nullptr;
+// Global state variables (defined here, fulfilling the extern declaration in renderer.h)
 float g_robotX = 0.0f;
 float g_robotY = 0.0f;
 float g_robotHeadingRad = 0.0f;
@@ -37,13 +35,11 @@ void StartRenderFrame() {
   // --- Camera Simplification ---
   glMatrixMode(GL_PROJECTION);
   glLoadIdentity();
-  // Keep the projection settings, but make the world bigger
   float fov = 60.0f * M_PI / 180.0f;
   float h = 1.0f / tan(fov / 2.0f);
   float aspect = 1280.0f / 720.0f;
 
   float m[16] = {h / aspect, 0, 0, 0, 0, h, 0, 0,
-                 // Increased the Z bounds to cover a larger field of view
                  0, 0, -(200.1f) / (199.9f), -1, 0, 0,
                  -(4.0f * 100.0f * 0.1f) / (199.9f), 0};
   glLoadMatrixf(m);
@@ -68,29 +64,36 @@ void RenderFRCField() {
   glEnd();
 }
 
-// FINAL FUNCTION: Renders the imported OBJ mesh geometry!
-// Update your signature to accept the driver's original joystick commands!
+// Renders the imported OBJ mesh geometry on PC targets
+// Inside src/gfx/pc_opengl.cpp
+// Inside src/gfx/pc_opengl.cpp -> RenderRobotChassis()
+// Inside src/gfx/pc_opengl.cpp -> RenderRobotChassis()
 void RenderRobotChassis(const RobotMesh& mesh, float fwd, float strafe, float rcw) {
-    
     float dt = 0.016f;
-    float linearSpeedMultiplier = 8.0f;  // Adjust to make the robot slide faster or slower
-    float angularSpeedMultiplier = 5.0f; // Adjust to tweak turning rate
+    float linearSpeedMultiplier = 8.0f;  
+    float angularSpeedMultiplier = 5.0f; 
 
     // Field-oriented translational movement calculation:
-    // Move on the field based on raw world commands instead of absolute wheel module scalar values
     g_robotX += strafe * linearSpeedMultiplier * dt;
     g_robotY += fwd * linearSpeedMultiplier * dt;
     g_robotHeadingRad += rcw * angularSpeedMultiplier * dt; 
 
-    // --- 2. Rendering the Mesh ---
+    // --- Rendering the Mesh ---
     glPushMatrix();
     
-    // Note: OpenGL matches Z to forward-back, X to left-right
     glTranslatef(g_robotX, 0.4f, -g_robotY); 
     glRotatef(-g_robotHeadingRad * 180.0f / M_PI, 0.0f, 1.0f, 0.0f);
 
+    float assetScale = 5.0f; 
+    glScalef(assetScale, assetScale, assetScale);
+
+    glDisable(GL_LIGHTING); 
+
+    // RESTORED PC LOOP: Render using indices exactly like your original build
     glBegin(GL_TRIANGLES);
     for (unsigned int i = 0; i < mesh.indices.size(); i += 3) {
+        if (i + 2 >= mesh.indices.size()) break;
+
         const Vertex& v1 = mesh.vertices[mesh.indices[i]];
         const Vertex& v2 = mesh.vertices[mesh.indices[i+1]];
         const Vertex& v3 = mesh.vertices[mesh.indices[i+2]];
@@ -108,6 +111,7 @@ void EndRenderFrame() {
   if (g_pcWindow)
     glfwSwapBuffers(g_pcWindow);
 }
+
 void DeinitGraphicsBackend() {
   if (g_pcWindow)
     glfwDestroyWindow(g_pcWindow);
