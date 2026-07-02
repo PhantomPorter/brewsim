@@ -33,13 +33,28 @@ struct DriverStationInput {
 };
 
 bool g_running = true;
-extern float g_robotHeadingRad;
 
 int main(int argc, char **argv) {
   InitGraphicsBackend();
   DriverStationInput player_controls;
 
-  RobotDimensions my_robot_config = { 1.2f, 1.0f, 0.25f };
+ RobotDimensions my_robot_config = { 1.2f * 5.0f, 1.0f * 5.0f, 0.25f * 5.0f }; 
+  
+  // Track structural vectors and orientation across frames
+  RobotPhysicsState robot_state;
+  robot_state.position = Vector3(0.0f, 0.0f, 0.0f);
+  robot_state.velocity = Vector3(0.0f, 0.0f, 0.0f);
+  robot_state.heading_rad = 0.0f;
+  robot_state.angular_velocity = 0.0f;
+
+  // Track the rolling game piece simulation vectors
+  BallPhysicsState game_ball;
+  game_ball.position = Vector3(2.0f, 2.0f, 0.0f); // Spawns slightly in front of center field
+  game_ball.velocity = Vector3(0.0f, 0.0f, 0.0f);
+
+  // Establish a constant simulation step (60Hz target frame rate)
+  const float dt = 1.0f / 60.0f; 
+
   std::string assetsRoot = ASSETS_PATH;
   std::string modelFullPath;
 
@@ -89,6 +104,9 @@ int main(int argc, char **argv) {
     hidCircleRead(&cStick);
     player_controls.drive_x = static_cast<float>(cStick.dx) / 150.0f;
     player_controls.drive_y = static_cast<float>(cStick.dy) / 150.0f;
+    
+    uint32_t kHeld = hidKeysHeld();
+    player_controls.steer_rot = (kHeld & KEY_DRIGHT) ? 1.0f : ((kHeld & KEY_DLEFT) ? -1.0f : 0.0f);
 #elif defined(__WII__)
     WPAD_ScanPads();
     uint32_t wDown = WPAD_ButtonsDown(0);
@@ -102,7 +120,6 @@ int main(int argc, char **argv) {
     g_wiiStrafeInput = 0.0f;
     g_wiiRotInput = 0.0f;
 
-    // 1 & 2 handle rotational heading offsets
     if (wHeld & WPAD_BUTTON_1) g_wiiRotInput = -1.0f;
     if (wHeld & WPAD_BUTTON_2) g_wiiRotInput = 1.0f;
 
@@ -125,7 +142,7 @@ int main(int argc, char **argv) {
     VPADReadError vpad_error; 
     VPADRead(VPAD_CHAN_0, &vpad_status, 1, &vpad_error);
 
-    if (vpad_error == VPAD_READ_SUCCESS) { 
+    if (vpad_error == WPAD_READ_SUCCESS) { 
       if (vpad_status.hold & VPAD_BUTTON_HOME) {
         g_running = false;
       }
@@ -137,26 +154,33 @@ int main(int argc, char **argv) {
 #endif
 
     // ---------------------------------------------------------------------
-    // STEP B: KINEMATICS BACKGROUND MATH
+    // STEP B: KINEMATICS BACKGROUND MATH & INTEGRATION
     // ---------------------------------------------------------------------
+    // Move the chassis, apply deadzones, and lock movement to the camera axis
+    IntegrateRobotPhysics(robot_state, player_controls.drive_y, player_controls.drive_x, player_controls.steer_rot, my_robot_config, dt);
+
+    // 2. Process ball interactions matching those absolute coordinates
+    UpdateAndBounceBall(game_ball, robot_state, my_robot_config, dt);
+
+    // 3. Process swerve module state outputs 
+    // Pass raw joystick values so wheel angle indicators stay relative to the chassis frame
     SwerveDriveStates current_robot_swerve = CalculateSwerveKinematics(
         player_controls.drive_y, player_controls.drive_x,
-        player_controls.steer_rot, g_robotHeadingRad, my_robot_config);
+        player_controls.steer_rot, robot_state, my_robot_config);
 
     // ---------------------------------------------------------------------
     // STEP C: HARDWARE ACCELERATED 3D RENDER PIPELINE
     // ---------------------------------------------------------------------
 #if defined(__WII__)
-    // Capture the calculated view matrix pointer on the Wii target
     Mtx* currentFrameViewMtx = StartRenderFrame();
     RenderFRCField();
-    RenderRobotChassis(robot_mesh, player_controls.drive_y,
-                       player_controls.drive_x, player_controls.steer_rot, currentFrameViewMtx);
+    RenderGameBall(game_ball);
+    RenderRobotChassis(robot_mesh, robot_state, currentFrameViewMtx);
 #else
     StartRenderFrame();
     RenderFRCField();
-    RenderRobotChassis(robot_mesh, player_controls.drive_y,
-                       player_controls.drive_x, player_controls.steer_rot);
+    RenderGameBall(game_ball);
+    RenderRobotChassis(robot_mesh, robot_state);
 #endif
 
     EndRenderFrame();

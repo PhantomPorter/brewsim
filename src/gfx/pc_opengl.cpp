@@ -1,5 +1,3 @@
-// src/gfx/pc_opengl.cpp (THIS IS THE FINAL CODE FOR THE DRAWING)
-
 #if defined(__DESKTOP_PC__)
 #include "../robot_physics.h"
 #include "renderer.h"
@@ -8,10 +6,6 @@
 
 // Global tracking variables exposed to main loops
 GLFWwindow *g_pcWindow = nullptr;
-// Global state variables (defined here, fulfilling the extern declaration in renderer.h)
-float g_robotX = 0.0f;
-float g_robotY = 0.0f;
-float g_robotHeadingRad = 0.0f;
 
 void InitGraphicsBackend() {
   if (!glfwInit())
@@ -64,32 +58,18 @@ void RenderFRCField() {
   glEnd();
 }
 
-// Renders the imported OBJ mesh geometry on PC targets
-// Inside src/gfx/pc_opengl.cpp
-// Inside src/gfx/pc_opengl.cpp -> RenderRobotChassis()
-// Inside src/gfx/pc_opengl.cpp -> RenderRobotChassis()
-void RenderRobotChassis(const RobotMesh& mesh, float fwd, float strafe, float rcw) {
-    float dt = 0.016f;
-    float linearSpeedMultiplier = 8.0f;  
-    float angularSpeedMultiplier = 5.0f; 
-
-    // Field-oriented translational movement calculation:
-    g_robotX += strafe * linearSpeedMultiplier * dt;
-    g_robotY += fwd * linearSpeedMultiplier * dt;
-    g_robotHeadingRad += rcw * angularSpeedMultiplier * dt; 
-
-    // --- Rendering the Mesh ---
+void RenderRobotChassis(const RobotMesh& mesh, const RobotPhysicsState& state) {
     glPushMatrix();
     
-    glTranslatef(g_robotX, 0.4f, -g_robotY); 
-    glRotatef(-g_robotHeadingRad * 180.0f / M_PI, 0.0f, 1.0f, 0.0f);
+    // Position and spin strictly on physics parameters
+    glTranslatef(state.position.x, 0.4f, -state.position.y); 
+    glRotatef(-state.heading_rad * 180.0f / M_PI, 0.0f, 1.0f, 0.0f);
 
     float assetScale = 5.0f; 
     glScalef(assetScale, assetScale, assetScale);
 
     glDisable(GL_LIGHTING); 
 
-    // RESTORED PC LOOP: Render using indices exactly like your original build
     glBegin(GL_TRIANGLES);
     for (unsigned int i = 0; i < mesh.indices.size(); i += 3) {
         if (i + 2 >= mesh.indices.size()) break;
@@ -107,10 +87,47 @@ void RenderRobotChassis(const RobotMesh& mesh, float fwd, float strafe, float rc
     glPopMatrix();
 }
 
+
+
+
 void EndRenderFrame() {
   if (g_pcWindow)
     glfwSwapBuffers(g_pcWindow);
 }
+
+void RenderGameBall(const BallPhysicsState& ball) {
+    glPushMatrix();
+    glTranslatef(ball.position.x, ball.radius, -ball.position.y); 
+    
+    // UPDATED: Bright Yellow primary channel colors
+    glColor3f(1.0f, 1.0f, 0.0f); 
+    float r = ball.radius;
+
+    glBegin(GL_LINES);
+    // Upper Pyramid Edges
+    glVertex3f(0, r, 0);  glVertex3f(r, 0, 0);
+    glVertex3f(0, r, 0);  glVertex3f(-r, 0, 0);
+    glVertex3f(0, r, 0);  glVertex3f(0, 0, r);
+    glVertex3f(0, r, 0);  glVertex3f(0, 0, -r);
+    
+    // Base Ring Perimeter
+    glVertex3f(r, 0, 0);  glVertex3f(0, 0, r);
+    glVertex3f(0, 0, r);  glVertex3f(-r, 0, 0);
+    glVertex3f(-r, 0, 0); glVertex3f(0, 0, -r);
+    glVertex3f(0, 0, -r); glVertex3f(r, 0, 0);
+
+    // Lower Pyramid Edges
+    glVertex3f(0, -r, 0); glVertex3f(r, 0, 0);
+    glVertex3f(0, -r, 0); glVertex3f(-r, 0, 0);
+    glVertex3f(0, -r, 0); glVertex3f(0, 0, r);
+    glVertex3f(0, -r, 0); glVertex3f(0, 0, -r);
+    glEnd();
+    
+    glPopMatrix();
+}
+
+
+
 
 void DeinitGraphicsBackend() {
   if (g_pcWindow)

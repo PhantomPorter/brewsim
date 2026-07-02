@@ -1,14 +1,19 @@
 #include "robot_physics.h"
 #include <cmath>
 
-// Implementation of the parameterized kinematics function
-// NOTE: This function now relies entirely on the 'dimensions' passed in.
-SwerveDriveStates CalculateSwerveKinematics(float fwd, float strafe, float rcw, float robotHeadingRad, const RobotDimensions& dimensions) {
+// Define the global config declarations your header expects
+const float ROBOT_TRACKWIDTH = 1.2f;
+const float ROBOT_WHEELBASE = 1.0f;
+const float ROBOT_RADIUS = 0.25f;
+
+// Implementation of the parameterized kinematics function adapted to use the custom physics state
+SwerveDriveStates CalculateSwerveKinematics(float fwd, float strafe, float rcw, const RobotPhysicsState& state, const RobotDimensions& dimensions) {
     SwerveDriveStates states;
 
     // --- FIELD-ORIENTED TRANSFORM ---
-    float cosHeading = std::cos(robotHeadingRad);
-    float sinHeading = std::sin(robotHeadingRad);
+    // Extract the heading directly out of our single, unified tracking struct
+    float cosHeading = std::cos(state.heading_rad);
+    float sinHeading = std::sin(state.heading_rad);
     
     float robotFwd    = fwd * cosHeading + strafe * sinHeading;
     float robotStrafe = -fwd * sinHeading + strafe * cosHeading;

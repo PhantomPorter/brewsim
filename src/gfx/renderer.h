@@ -3,6 +3,8 @@
 #include <vector>
 #include <cstdint>
 
+struct RobotPhysicsState;
+struct BallPhysicsState;
 struct Vertex {
     float x, y, z;
     float r, g, b;
@@ -22,19 +24,20 @@ void InitGraphicsBackend();
 void DeinitGraphicsBackend();
 void RenderFRCField();
 void EndRenderFrame();
+void RenderGameBall(const BallPhysicsState& ball);
 RobotMesh LoadRobotMesh(const std::string& filepath);
 
 // --- STRICT CROSS-PLATFORM DISPATCH BLOCKS ---
 #if defined(__WII__)
     #include <gccore.h>
     Mtx* StartRenderFrame();
-    void RenderRobotChassis(const RobotMesh& mesh, float fwd, float strafe, float rcw, Mtx* viewMtx);
+    void RenderRobotChassis(const RobotMesh& mesh, const RobotPhysicsState& state, Mtx* viewMtx);
 
 #elif defined(__WIIU__)
     void* StartRenderFrame(); 
-    void RenderRobotChassis(const RobotMesh& mesh, float fwd, float strafe, float rcw, void* context = nullptr);
+    void RenderRobotChassis(const RobotMesh& mesh, const RobotPhysicsState& state, void* context = nullptr);
 
-#else // PC Desktop & fallback targets
+#else // PC Desktop, 3DS, & fallback targets
     void StartRenderFrame();
-    void RenderRobotChassis(const RobotMesh& mesh, float fwd, float strafe, float rcw);
+    void RenderRobotChassis(const RobotMesh& mesh, const RobotPhysicsState& state);
 #endif
